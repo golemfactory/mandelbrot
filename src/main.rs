@@ -9,7 +9,7 @@ use structopt::*;
 
 use failure::{Error, Fail};
 use serde::{Deserialize, Serialize};
-use gwasm_api::{Blob, TaskResult, TaskInput, TaskInputElem, InputDesc};
+use gwasm_api::{Blob, TaskResult, TaskInput};
 
 
 
@@ -123,8 +123,8 @@ fn merge_vecs(partial_results: Vec<Vec<u8>>) -> Vec<u8> {
     partial_results.into_iter().flatten().collect::<Vec<u8>>()
 }
 
-fn merge(args: &MandelbrotParams, params: &TaskResult<(ExecuteParams,),(Blob,)>) -> Vec<u8> {
-    let partial_results = params.into_iter().map(|((params,),(image_blob,))| {
+fn merge(_args: &MandelbrotParams, params: &TaskResult<(ExecuteParams,),(Blob,)>) -> Vec<u8> {
+    let partial_results = params.into_iter().map(|((_params,),(image_blob,))| {
 
         load_file(image_blob.path.as_ref().unwrap())
     }).collect::<Vec<Vec<u8>>>();
@@ -196,7 +196,7 @@ fn main() {
 
     // Split step.
     let split_params = split(&opt);
-    save_params(Path::new("results/split/"), &split_params);
+    save_params(Path::new("results/split/"), &split_params).unwrap();
 
     // Execute step for all subtasks.
     let mut results = Vec::new();
@@ -210,5 +210,5 @@ fn main() {
     // Write result image to file.
     let output_path = Path::new(&opt.output_dir).join("out.png");
 
-    save_file(output_path.to_str().unwrap(), &data, opt.width, opt.height);
+    save_file(output_path.to_str().unwrap(), &data, opt.width, opt.height).unwrap();
 }
