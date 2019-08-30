@@ -9,3 +9,7 @@ num-complex = "0.2"
 png = "0.15"
 structopt="0.2"
 failure = "0.1.5"
+gwasm-api = "0.1.0"
+
+[patch.crates-io]
+gwasm-api = { git = "https://github.com/golemfactory/gwasm-runner/", branch = "mmm" }

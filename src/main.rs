@@ -8,6 +8,7 @@ use structopt::*;
 
 
 use failure::{Error, Fail};
+use gwasm_api;
 
 
 
