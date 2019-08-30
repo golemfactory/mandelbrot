@@ -8,7 +8,7 @@ use structopt::*;
 
 
 use failure::{Error, Fail};
-use gwasm_api;
+use gwasm_api::{Blob};
 
 
 
@@ -94,22 +94,22 @@ fn exec_to_vec(params: &ExecuteParams) -> Vec<u8> {
     return data
 }
 
-fn exec(params: &ExecuteParams) -> Vec<u8> {
+fn exec(params: &ExecuteParams) -> (Blob,) {
     let data = exec_to_vec(params);
 
     let width = params.area.endx - params.area.startx;
     let height = params.area.endy - params.area.starty;
 
-    save_file(&params.output, &data, width, height);
+    save_file(&params.output, &data, width, height).unwrap();
 
-    return data
+    return (Blob::new(&params.output),);
 }
 
 fn merge_vecs(partial_results: Vec<Vec<u8>>) -> Vec<u8> {
     partial_results.into_iter().flatten().collect::<Vec<u8>>()
 }
 
-fn merge(params: &Vec<ExecuteParams>) -> Vec<u8> {
+fn merge(args: &MandelbrotParams, params: &Vec<ExecuteParams>) -> Vec<u8> {
     let partial_results = params.into_iter().map(|subtask_param|{
         load_file(&subtask_param.output)
     }).collect::<Vec<Vec<u8>>>();
@@ -174,7 +174,7 @@ fn main() {
     }
 
     // Merge step.
-    let data = merge(&split_params);
+    let data = merge(&opt, &split_prams);
 
     // Write result image to file.
     let output_path = Path::new(&opt.output_dir).join("out.png");
