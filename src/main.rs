@@ -112,11 +112,9 @@ fn merge_vecs(partial_results: Vec<Vec<u8>>) -> Vec<u8> {
 }
 
 fn merge(args: &MandelbrotParams, params: &TaskResult<(ExecuteParams,),(Blob,)>) -> Vec<u8> {
-    let partial_results = params.into_iter().map(|subtask_param| {
-        let (input_params, result) = subtask_param;
-        let (image_blob,) = result;
+    let partial_results = params.into_iter().map(|((params,),(image_blob,))| {
 
-        load_file(image_blob.path.clone().unwrap().to_str().unwrap())
+        load_file(image_blob.path.as_ref().unwrap())
     }).collect::<Vec<Vec<u8>>>();
 
     merge_vecs(partial_results)
@@ -155,7 +153,7 @@ fn save_file(output: &str, data: &Vec<u8>, width: u32, height: u32) -> Result<()
     Ok(())
 }
 
-fn load_file(input: &str) -> Vec<u8> {
+fn load_file(input: &Path) -> Vec<u8> {
     let decoder = png::Decoder::new(File::open(input).unwrap());
     let (info, mut reader) = decoder.read_info().unwrap();
     let mut buf = vec![0; info.buffer_size()];
