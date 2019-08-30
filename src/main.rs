@@ -8,11 +8,12 @@ use structopt::*;
 
 
 use failure::{Error, Fail};
-use gwasm_api::{Blob, TaskResult};
+use serde::{Deserialize, Serialize};
+use gwasm_api::{Blob, TaskResult, TaskInput, TaskInputElem, InputDesc};
 
 
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, StructOpt, Clone, Serialize, Deserialize)]
 struct MandelbrotParams {
     sx: f64,
     ex: f64,
@@ -37,7 +38,7 @@ fn mandelbrot(c: Complex<f64>, max_iter: usize) -> usize {
     n
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Rect {
     startx: u32,
     starty: u32,
@@ -45,16 +46,27 @@ struct Rect {
     endy: u32
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct ExecuteParams {
+    #[serde(with = "ComplexDef")]
     start: Complex<f64>,
+    #[serde(with = "ComplexDef")]
     pixel_step: Complex<f64>,
     max_iter: usize,
     area: Rect,
     output: String,
 }
 
-fn split(params: &MandelbrotParams) -> Vec<ExecuteParams> {
+// This is required to run serde serialization on Complex type.
+// Check https://serde.rs/remote-derive.html
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Complex")]
+pub struct ComplexDef<T> {
+    pub re: T,
+    pub im: T,
+}
+
+fn split(params: &MandelbrotParams) -> Vec<(ExecuteParams,)> {
     let s = Complex::new(params.sx, params.sy);
     let e = Complex::new(params.ex, params.ey);
     let size = Complex::new(params.width as f64, params.height as f64);
@@ -73,7 +85,7 @@ fn split(params: &MandelbrotParams) -> Vec<ExecuteParams> {
         let area = Rect{ startx: 0, starty, endx: params.width, endy};
         let output = format!("{}/out-{}-{}.png", &params.output_dir, area.starty, area.endy);
 
-        split_params.push(ExecuteParams{area, output, ..common_params})
+        split_params.push((ExecuteParams{area, output, ..common_params},))
     }
 
     return split_params;
@@ -163,15 +175,32 @@ fn load_file(input: &Path) -> Vec<u8> {
     return buf
 }
 
+fn save_params<SplitOutputType : TaskInput>(output_dir: &Path, split_params: &Vec<SplitOutputType>) -> Result<(), Error> {
+
+    let json_params: Vec<serde_json::Value> = split_params.iter().map(TaskInput::pack_task).collect();
+
+    fs::create_dir_all(output_dir)?;
+
+    let mut subtask_num: u32 = 0;
+    for subtask_params in json_params {
+        let output_file = output_dir.join(format!("params-{}.json", subtask_num));
+        fs::write(output_file, serde_json::to_string_pretty(&subtask_params)?)?;
+
+        subtask_num += 1;
+    }
+    Ok(())
+}
+
 fn main() {
     let opt = MandelbrotParams::from_args();
 
     // Split step.
     let split_params = split(&opt);
+    save_params(Path::new("results/split/"), &split_params);
 
     // Execute step for all subtasks.
     let mut results = Vec::new();
-    for subtask_params in split_params.into_iter() {
+    for (subtask_params,) in split_params.into_iter() {
         results.push(((subtask_params.clone(),), exec(&subtask_params)));
     }
 
