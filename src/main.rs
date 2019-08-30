@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::fs;
-use std::io::{BufWriter, ErrorKind};
+use std::io::{BufWriter};
 use std::path::{Path};
 
 use num_complex::Complex;
@@ -8,7 +8,7 @@ use structopt::*;
 
 
 use failure::{Error, Fail};
-use gwasm_api::{Blob};
+use gwasm_api::{Blob, TaskResult};
 
 
 
@@ -37,6 +37,7 @@ fn mandelbrot(c: Complex<f64>, max_iter: usize) -> usize {
     n
 }
 
+#[derive(Clone)]
 struct Rect {
     startx: u32,
     starty: u32,
@@ -44,6 +45,7 @@ struct Rect {
     endy: u32
 }
 
+#[derive(Clone)]
 struct ExecuteParams {
     start: Complex<f64>,
     pixel_step: Complex<f64>,
@@ -109,9 +111,12 @@ fn merge_vecs(partial_results: Vec<Vec<u8>>) -> Vec<u8> {
     partial_results.into_iter().flatten().collect::<Vec<u8>>()
 }
 
-fn merge(args: &MandelbrotParams, params: &Vec<ExecuteParams>) -> Vec<u8> {
-    let partial_results = params.into_iter().map(|subtask_param|{
-        load_file(&subtask_param.output)
+fn merge(args: &MandelbrotParams, params: &TaskResult<(ExecuteParams,),(Blob,)>) -> Vec<u8> {
+    let partial_results = params.into_iter().map(|subtask_param| {
+        let (input_params, result) = subtask_param;
+        let (image_blob,) = result;
+
+        load_file(image_blob.path.clone().unwrap().to_str().unwrap())
     }).collect::<Vec<Vec<u8>>>();
 
     merge_vecs(partial_results)
@@ -137,8 +142,6 @@ fn save_file(output: &str, data: &Vec<u8>, width: u32, height: u32) -> Result<()
     }
 
     let path = Path::new(output);
-    let display = path.display();
-
     fs::create_dir_all(path.parent().ok_or(SaveFileError::NoParent)?)?;
 
     let file = File::create(&path)?;
@@ -169,12 +172,13 @@ fn main() {
     let split_params = split(&opt);
 
     // Execute step for all subtasks.
-    for subtask_params in split_params.iter() {
-        exec(&subtask_params);
+    let mut results = Vec::new();
+    for subtask_params in split_params.into_iter() {
+        results.push(((subtask_params.clone(),), exec(&subtask_params)));
     }
 
     // Merge step.
-    let data = merge(&opt, &split_prams);
+    let data = merge(&opt, &results);
 
     // Write result image to file.
     let output_path = Path::new(&opt.output_dir).join("out.png");
