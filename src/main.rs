@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::BufWriter;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use num_complex::Complex;
 use structopt::*;
@@ -16,6 +16,8 @@ struct Opt {
     max_iter: usize,
     width: u32,
     height: u32,
+    #[structopt(short, long, parse(from_os_str))]
+    out_file: PathBuf
 }
 
 fn mandelbrot(c: Complex<f64>, max_iter: usize) -> usize {
@@ -51,10 +53,9 @@ fn main() {
         })
         .collect::<Vec<u8>>();
 
-    let path = Path::new("out.png");
-    let display = path.display();
+    let display = opt.out_file.display();
 
-    let file = match File::create(&path) {
+    let file = match File::create(&opt.out_file) {
         Err(why) => panic!("couldn't create file {}: {}", display, why.description()),
         Ok(file) => file,
     };
