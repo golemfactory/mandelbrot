@@ -1,8 +1,7 @@
 use std::path::{Path};
 use std::fs;
 
-use failure::{Error, Fail};
-use serde::{Deserialize, Serialize};
+use failure::{Error};
 use gwasm_api::{Blob, TaskResult, TaskInput};
 use structopt::StructOpt;
 
