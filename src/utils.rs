@@ -6,11 +6,15 @@ use gwasm_api::{Blob, TaskResult, TaskInput};
 use structopt::StructOpt;
 
 
-pub trait MapReduce<SplitArgs, ExecuteInput: TaskInput, ExecuteOutput> {
+pub trait MapReduce {
 
-    fn split(args: &SplitArgs) -> Vec<ExecuteInput>;
-    fn execute(params: ExecuteInput) -> ExecuteOutput;
-    fn merge(args: &SplitArgs, subtasks_result: &TaskResult<ExecuteInput, ExecuteOutput>);
+    type SplitArgs: StructOpt;
+    type ExecuteInput: TaskInput;
+    type ExecuteOutput;
+
+    fn split(args: &Self::SplitArgs) -> Vec<Self::ExecuteInput>;
+    fn execute(params: Self::ExecuteInput) -> Self::ExecuteOutput;
+    fn merge(args: &Self::SplitArgs, subtasks_result: &TaskResult<Self::ExecuteInput, Self::ExecuteOutput>);
 }
 
 
@@ -42,8 +46,8 @@ pub fn save_params2<SplitOutputType : TaskInput>(output_dir: &Path, split_params
     Ok(())
 }
 
-pub fn split_step<SplitArgs: StructOpt, ExecuteInput: TaskInput, ExecuteOutput, MapReduceType: MapReduce<SplitArgs, ExecuteInput, ExecuteOutput>>() -> Vec<ExecuteInput> {
-    let opt = SplitArgs::from_args();
+pub fn split_step<MapReduceType: MapReduce>() -> Vec<MapReduceType::ExecuteInput> {
+    let opt = MapReduceType::SplitArgs::from_args();
 
     // Split step.
     let split_params = MapReduceType::split(&opt);

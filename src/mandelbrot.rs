@@ -92,7 +92,11 @@ impl Mandelbrot {
 }
 
 
-impl MapReduce<MandelbrotParams, (ExecuteParams,), (Blob, )> for Mandelbrot {
+impl MapReduce for Mandelbrot {
+
+    type SplitArgs = MandelbrotParams;
+    type ExecuteInput = (ExecuteParams,);
+    type ExecuteOutput = (Blob,);
 
     fn split(params: &MandelbrotParams) -> Vec<(ExecuteParams, )> {
         let s = Complex::new(params.sx, params.sy);

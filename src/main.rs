@@ -13,7 +13,7 @@ use crate::mandelbrot::{MandelbrotParams, Mandelbrot, ExecuteParams};
 
 fn main() {
 
-    let split_params = utils::split_step::<MandelbrotParams, (ExecuteParams,), (Blob,), Mandelbrot>();
+    let split_params = utils::split_step::<Mandelbrot>();
 
     // Execute step for all subtasks.
 
