@@ -193,13 +193,14 @@ fn load_file(input: &Path) -> Vec<u8> {
 }
 
 fn main() {
-    let opt = MandelbrotParams::from_args();
 
-    // Split step.
-    let split_params = Mandelbrot::split(&opt);
-    utils::save_params2(Path::new("results/split/"), &split_params).unwrap();
+    let split_params = utils::split_step::<MandelbrotParams, (ExecuteParams,), (Blob,), Mandelbrot>();
 
     // Execute step for all subtasks.
+
+    // Temporary
+    let opt = MandelbrotParams::from_args();
+
     let mut results = Vec::new();
     for subtask_params in split_params.into_iter() {
         results.push((subtask_params.clone(), Mandelbrot::execute(subtask_params)));

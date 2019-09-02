@@ -4,14 +4,14 @@ use std::fs;
 use failure::{Error, Fail};
 use serde::{Deserialize, Serialize};
 use gwasm_api::{Blob, TaskResult, TaskInput};
-
+use structopt::StructOpt;
 
 
 pub trait MapReduce<SplitArgs, ExecuteInput: TaskInput, ExecuteOutput> {
 
-    fn split(params: &SplitArgs) -> Vec<ExecuteInput>;
+    fn split(args: &SplitArgs) -> Vec<ExecuteInput>;
     fn execute(params: ExecuteInput) -> ExecuteOutput;
-    fn merge(args: &SplitArgs, params: &TaskResult<ExecuteInput, ExecuteOutput>);
+    fn merge(args: &SplitArgs, subtasks_result: &TaskResult<ExecuteInput, ExecuteOutput>);
 }
 
 
@@ -43,10 +43,12 @@ pub fn save_params2<SplitOutputType : TaskInput>(output_dir: &Path, split_params
     Ok(())
 }
 
-//pub fn split_step<>() {
-//    let opt = MandelbrotParams::from_args();
-//
-//    // Split step.
-//    let split_params = split(&opt);
-//    save_params2(Path::new("results/split/"), &split_params).unwrap();
-//}
+pub fn split_step<SplitArgs: StructOpt, ExecuteInput: TaskInput, ExecuteOutput, MapReduceType: MapReduce<SplitArgs, ExecuteInput, ExecuteOutput>>() -> Vec<ExecuteInput> {
+    let opt = SplitArgs::from_args();
+
+    // Split step.
+    let split_params = MapReduceType::split(&opt);
+    save_params2(Path::new("results/split/"), &split_params).unwrap();
+
+    return split_params;
+}
