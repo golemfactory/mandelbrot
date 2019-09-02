@@ -1,3 +1,6 @@
+pub mod utils;
+
+
 use std::fs::File;
 use std::fs;
 use std::io::{BufWriter};
@@ -10,7 +13,7 @@ use structopt::*;
 use failure::{Error, Fail};
 use serde::{Deserialize, Serialize};
 use gwasm_api::{Blob, TaskResult, TaskInput};
-
+use crate::utils::MapReduce;
 
 
 #[derive(Debug, StructOpt, Clone, Serialize, Deserialize)]
@@ -66,70 +69,84 @@ pub struct ComplexDef<T> {
     pub im: T,
 }
 
-fn split(params: &MandelbrotParams) -> Vec<(ExecuteParams,)> {
-    let s = Complex::new(params.sx, params.sy);
-    let e = Complex::new(params.ex, params.ey);
-    let size = Complex::new(params.width as f64, params.height as f64);
-    let delta = e - s;
-    let scale = Complex::new(delta.re / size.re, delta.im / size.im);
+struct Mandelbrot;
 
-    // Preapre params common for all subtasks. Create zero area to replace in future on per subtasks basis.
-    let area = Rect{ startx: 0, starty: 0, endx: 0, endy: 0};
-    let common_params = ExecuteParams{ start: s, pixel_step: scale, max_iter: params.max_iter, area, output: String::new() };
 
-    let mut split_params = Vec::with_capacity(params.num_subtasks);
-    for part in 0..params.num_subtasks {
-        let starty = (part as u32 * params.height) / params.num_subtasks as u32;
-        let endy = ((part as u32 + 1) * params.height) / params.num_subtasks as u32;
+impl Mandelbrot {
 
-        let area = Rect{ startx: 0, starty, endx: params.width, endy};
-        let output = format!("{}/out-{}-{}.png", &params.output_dir, area.starty, area.endy);
+    fn exec_to_vec(params: &ExecuteParams) -> Vec<u8> {
+        let data = (params.area.starty..params.area.endy)
+            .into_iter()
+            .flat_map(|y| {
+                let im = params.pixel_step.im * y as f64;
+                (params.area.startx..params.area.endx).into_iter().map(move |x| {
+                    let step = Complex::new(params.pixel_step.re * x as f64, im);
+                    let it = mandelbrot(params.start + step, params.max_iter);
+                    //            println!("{}x{}: it = {}", y, x, it);
+                    (params.max_iter as f64 * 255f64 / it as f64) as u8
+                })
+            })
+            .collect::<Vec<u8>>();
 
-        split_params.push((ExecuteParams{area, output, ..common_params},))
+        return data
     }
 
-    return split_params;
+    fn merge_vecs(partial_results: Vec<Vec<u8>>) -> Vec<u8> {
+        partial_results.into_iter().flatten().collect::<Vec<u8>>()
+    }
 }
 
-fn exec_to_vec(params: &ExecuteParams) -> Vec<u8> {
-    let data = (params.area.starty..params.area.endy)
-        .into_iter()
-        .flat_map(|y| {
-            let im = params.pixel_step.im * y as f64;
-            (params.area.startx..params.area.endx).into_iter().map(move |x| {
-                let step = Complex::new(params.pixel_step.re * x as f64, im);
-                let it = mandelbrot(params.start + step, params.max_iter);
-                //            println!("{}x{}: it = {}", y, x, it);
-                (params.max_iter as f64 * 255f64 / it as f64) as u8
-            })
-        })
-        .collect::<Vec<u8>>();
 
-    return data
-}
+impl MapReduce<MandelbrotParams, (ExecuteParams,), (Blob, )> for Mandelbrot {
 
-fn exec(params: &ExecuteParams) -> (Blob,) {
-    let data = exec_to_vec(params);
+    fn split(params: &MandelbrotParams) -> Vec<(ExecuteParams, )> {
+        let s = Complex::new(params.sx, params.sy);
+        let e = Complex::new(params.ex, params.ey);
+        let size = Complex::new(params.width as f64, params.height as f64);
+        let delta = e - s;
+        let scale = Complex::new(delta.re / size.re, delta.im / size.im);
 
-    let width = params.area.endx - params.area.startx;
-    let height = params.area.endy - params.area.starty;
+        // Preapre params common for all subtasks. Create zero area to replace in future on per subtasks basis.
+        let area = Rect { startx: 0, starty: 0, endx: 0, endy: 0 };
+        let common_params = ExecuteParams { start: s, pixel_step: scale, max_iter: params.max_iter, area, output: String::new() };
 
-    save_file(&params.output, &data, width, height).unwrap();
+        let mut split_params = Vec::with_capacity(params.num_subtasks);
+        for part in 0..params.num_subtasks {
+            let starty = (part as u32 * params.height) / params.num_subtasks as u32;
+            let endy = ((part as u32 + 1) * params.height) / params.num_subtasks as u32;
 
-    return (Blob::new(&params.output),);
-}
+            let area = Rect { startx: 0, starty, endx: params.width, endy };
+            let output = format!("{}/out-{}-{}.png", &params.output_dir, area.starty, area.endy);
 
-fn merge_vecs(partial_results: Vec<Vec<u8>>) -> Vec<u8> {
-    partial_results.into_iter().flatten().collect::<Vec<u8>>()
-}
+            split_params.push((ExecuteParams { area, output, ..common_params }, ))
+        }
 
-fn merge(_args: &MandelbrotParams, params: &TaskResult<(ExecuteParams,),(Blob,)>) -> Vec<u8> {
-    let partial_results = params.into_iter().map(|((_params,),(image_blob,))| {
+        return split_params;
+    }
 
-        load_file(image_blob.path.as_ref().unwrap())
-    }).collect::<Vec<Vec<u8>>>();
+    fn execute((params,): (ExecuteParams,)) -> (Blob, ) {
+        let data = Mandelbrot::exec_to_vec(&params);
 
-    merge_vecs(partial_results)
+        let width = params.area.endx - params.area.startx;
+        let height = params.area.endy - params.area.starty;
+
+        save_file(&params.output, &data, width, height).unwrap();
+
+        return (Blob::new(&params.output), );
+    }
+
+    fn merge(args: &MandelbrotParams, params: &TaskResult<(ExecuteParams, ), (Blob, )>) {
+        let partial_results = params.into_iter().map(|((_params, ), (image_blob, ))| {
+            load_file(image_blob.path.as_ref().unwrap())
+        }).collect::<Vec<Vec<u8>>>();
+
+        let data = Mandelbrot::merge_vecs(partial_results);
+
+        // Write result image to file.
+        let output_path = Path::new(&args.output_dir).join("out.png");
+
+        save_file(output_path.to_str().unwrap(), &data, args.width, args.height).unwrap();
+    }
 }
 
 #[derive(Debug, Fail)]
@@ -175,40 +192,19 @@ fn load_file(input: &Path) -> Vec<u8> {
     return buf
 }
 
-fn save_params<SplitOutputType : TaskInput>(output_dir: &Path, split_params: &Vec<SplitOutputType>) -> Result<(), Error> {
-
-    let json_params: Vec<serde_json::Value> = split_params.iter().map(TaskInput::pack_task).collect();
-
-    fs::create_dir_all(output_dir)?;
-
-    let mut subtask_num: u32 = 0;
-    for subtask_params in json_params {
-        let output_file = output_dir.join(format!("params-{}.json", subtask_num));
-        fs::write(output_file, serde_json::to_string_pretty(&subtask_params)?)?;
-
-        subtask_num += 1;
-    }
-    Ok(())
-}
-
 fn main() {
     let opt = MandelbrotParams::from_args();
 
     // Split step.
-    let split_params = split(&opt);
-    save_params(Path::new("results/split/"), &split_params).unwrap();
+    let split_params = Mandelbrot::split(&opt);
+    utils::save_params2(Path::new("results/split/"), &split_params).unwrap();
 
     // Execute step for all subtasks.
     let mut results = Vec::new();
-    for (subtask_params,) in split_params.into_iter() {
-        results.push(((subtask_params.clone(),), exec(&subtask_params)));
+    for subtask_params in split_params.into_iter() {
+        results.push((subtask_params.clone(), Mandelbrot::execute(subtask_params)));
     }
 
     // Merge step.
-    let data = merge(&opt, &results);
-
-    // Write result image to file.
-    let output_path = Path::new(&opt.output_dir).join("out.png");
-
-    save_file(output_path.to_str().unwrap(), &data, opt.width, opt.height).unwrap();
+    Mandelbrot::merge(&opt, &results);
 }
