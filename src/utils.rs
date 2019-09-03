@@ -4,7 +4,6 @@ use std::env;
 
 use failure::{Error, Fail};
 use gwasm_api::{Blob, TaskResult, TaskInput};
-use structopt::StructOpt;
 use std::iter::FromIterator;
 
 
@@ -22,6 +21,8 @@ pub trait MapReduce {
 pub enum ApiError {
     #[fail(display = "Can't find parent")]
     NoParent,
+    #[fail(display = "Expected -- separator.")]
+    NoSeparator,
 }
 
 
@@ -48,20 +49,20 @@ pub fn load_params<MapReduceType: MapReduce>(params_path: &Path) -> MapReduceTyp
     unimplemented!()
 }
 
-pub fn dispatch_and_run_command<MapReduceType: MapReduce>() {
+pub fn dispatch_and_run_command<MapReduceType: MapReduce>() -> Result<(), Error> {
     let mut args: Vec<String> = env::args().collect();
     let command = args[1].clone();
 
     args.drain(0..1);
 
     if command == "split" {
-        split_step::<MapReduceType>(&args);
+        split_step::<MapReduceType>(&args)
     }
     else if command == "execute" {
-        execute_step::<MapReduceType>(&args);
+        execute_step::<MapReduceType>(&args)
     }
     else if command == "merge" {
-        merge_step::<MapReduceType>(&args);
+        merge_step::<MapReduceType>(&args)
     }
     else {
         panic!("Command not specified.")
@@ -69,26 +70,35 @@ pub fn dispatch_and_run_command<MapReduceType: MapReduce>() {
 }
 
 
-pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>){
+pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Error> {
 
     let work_dir = PathBuf::from(&args[0]);
     let split_params = MapReduceType::split(&Vec::from_iter(args[1..].iter().cloned()));
 
     let split_out_path = work_dir.join("tasks.json");
-    save_params_vec(&split_out_path, &split_params).unwrap();
+    save_params_vec(&split_out_path, &split_params)
 }
 
-pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) {
+pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Error>  {
 
     let params_path = PathBuf::from(args[0].clone());
     let output_desc_path = PathBuf::from(args[1].clone());
 
     let output = load_params::<MapReduceType>(&output_desc_path);
 
-    save_params(&output_desc_path, &output);
+    save_params(&output_desc_path, &output)
 }
 
-pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) {
+pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Error>  {
 
+    let tasks_params = PathBuf::from(args[0].clone());
+    let tasks_outputs = PathBuf::from(args[1].clone());
+
+//    if args[2] != "--" {
+//        return Err(ApiError::NoSeparator)?;
+//    }
+
+
+    Ok(())
 }
 
