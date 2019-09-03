@@ -13,18 +13,19 @@ use crate::mandelbrot::{MandelbrotParams, Mandelbrot, ExecuteParams};
 
 fn main() {
 
-    let split_params = utils::split_step::<Mandelbrot>();
+    //let split_params = utils::split_step::<Mandelbrot>();
+    utils::dispatch_and_run_command::<Mandelbrot>();
 
     // Execute step for all subtasks.
 
     // Temporary
-    let opt = MandelbrotParams::from_args();
-
-    let mut results = Vec::new();
-    for subtask_params in split_params.into_iter() {
-        results.push((subtask_params.clone(), Mandelbrot::execute(subtask_params)));
-    }
-
-    // Merge step.
-    Mandelbrot::merge(&opt, &results);
+//    let opt = MandelbrotParams::from_args();
+//
+//    let mut results = Vec::new();
+//    for subtask_params in split_params.into_iter() {
+//        results.push((subtask_params.clone(), Mandelbrot::execute(subtask_params)));
+//    }
+//
+//    // Merge step.
+//    Mandelbrot::merge(&opt, &results);
 }

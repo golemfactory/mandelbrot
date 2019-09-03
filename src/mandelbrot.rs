@@ -94,11 +94,12 @@ impl Mandelbrot {
 
 impl MapReduce for Mandelbrot {
 
-    type SplitArgs = MandelbrotParams;
     type ExecuteInput = (ExecuteParams,);
     type ExecuteOutput = (Blob,);
 
-    fn split(params: &MandelbrotParams) -> Vec<(ExecuteParams, )> {
+    fn split(params_vec: &Vec<String>) -> Vec<(ExecuteParams, )> {
+        let params = MandelbrotParams::from_iter(params_vec.into_iter());
+
         let s = Complex::new(params.sx, params.sy);
         let e = Complex::new(params.ex, params.ey);
         let size = Complex::new(params.width as f64, params.height as f64);
@@ -134,7 +135,9 @@ impl MapReduce for Mandelbrot {
         return (Blob::new(&params.output), );
     }
 
-    fn merge(args: &MandelbrotParams, params: &TaskResult<(ExecuteParams, ), (Blob, )>) {
+    fn merge(args_vec: &Vec<String>, params: &TaskResult<(ExecuteParams, ), (Blob, )>) {
+        let args = MandelbrotParams::from_iter(args_vec.into_iter());
+
         let partial_results = params.into_iter().map(|((_params, ), (image_blob, ))| {
             png_utils::load_file(image_blob.path.as_ref().unwrap())
         }).collect::<Vec<Vec<u8>>>();

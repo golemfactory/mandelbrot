@@ -1,5 +1,6 @@
 use std::path::{Path};
 use std::fs;
+use std::env;
 
 use failure::{Error};
 use gwasm_api::{Blob, TaskResult, TaskInput};
@@ -8,13 +9,12 @@ use structopt::StructOpt;
 
 pub trait MapReduce {
 
-    type SplitArgs: StructOpt;
     type ExecuteInput: TaskInput;
     type ExecuteOutput;
 
-    fn split(args: &Self::SplitArgs) -> Vec<Self::ExecuteInput>;
+    fn split(args: &Vec<String>) -> Vec<Self::ExecuteInput>;
     fn execute(params: Self::ExecuteInput) -> Self::ExecuteOutput;
-    fn merge(args: &Self::SplitArgs, subtasks_result: &TaskResult<Self::ExecuteInput, Self::ExecuteOutput>);
+    fn merge(args: &Vec<String>, subtasks_result: &TaskResult<Self::ExecuteInput, Self::ExecuteOutput>);
 }
 
 pub fn save_params<SplitOutputType : TaskInput>(output_dir: &Path, split_params: &Vec<SplitOutputType>) -> Result<(), Error> {
@@ -28,12 +28,43 @@ pub fn save_params<SplitOutputType : TaskInput>(output_dir: &Path, split_params:
     Ok(())
 }
 
-pub fn split_step<MapReduceType: MapReduce>() -> Vec<MapReduceType::ExecuteInput> {
-    let opt = MapReduceType::SplitArgs::from_args();
+pub fn dispatch_and_run_command<MapReduceType: MapReduce>() {
+    let mut args: Vec<String> = env::args().collect();
+    let command = args[1].clone();
+    args.drain(0..1);
+
+    if command == "split" {
+        split_step::<MapReduceType>(&args);
+    }
+    else if command == "execute" {
+        execute_step::<MapReduceType>(&args);
+    }
+    else if command == "merge" {
+        panic!("Not implemented")
+    }
+    else {
+        panic!("Command not specified.")
+    }
+}
+
+
+pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Vec<MapReduceType::ExecuteInput> {
 
     // Split step.
-    let split_params = MapReduceType::split(&opt);
+    let split_params = MapReduceType::split(args);
     save_params(Path::new("results/split/"), &split_params).unwrap();
 
     return split_params;
 }
+
+pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) {
+
+    let params_path = args[0].clone();
+
+
+}
+
+pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) {
+
+}
+
