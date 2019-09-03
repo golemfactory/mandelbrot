@@ -1,4 +1,4 @@
-use std::path::{Path};
+use std::path::{Path, PathBuf};
 use std::fs;
 use std::env;
 
@@ -31,13 +31,15 @@ pub fn save_params<SplitOutputType : TaskInput>(output_dir: &Path, split_params:
 pub fn dispatch_and_run_command<MapReduceType: MapReduce>() {
     let mut args: Vec<String> = env::args().collect();
     let command = args[1].clone();
-    args.drain(0..1);
+    let work_dir = PathBuf::from(args[2].clone());
+
+    args.drain(0..2);
 
     if command == "split" {
-        split_step::<MapReduceType>(&args);
+        split_step::<MapReduceType>(&work_dir, &args);
     }
     else if command == "execute" {
-        execute_step::<MapReduceType>(&args);
+        execute_step::<MapReduceType>(&work_dir, &args);
     }
     else if command == "merge" {
         panic!("Not implemented")
@@ -48,23 +50,22 @@ pub fn dispatch_and_run_command<MapReduceType: MapReduce>() {
 }
 
 
-pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Vec<MapReduceType::ExecuteInput> {
+pub fn split_step<MapReduceType: MapReduce>(work_dir: &Path, args: &Vec<String>) -> Vec<MapReduceType::ExecuteInput> {
 
-    // Split step.
     let split_params = MapReduceType::split(args);
     save_params(Path::new("results/split/"), &split_params).unwrap();
 
     return split_params;
 }
 
-pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) {
+pub fn execute_step<MapReduceType: MapReduce>(work_dir: &Path, args: &Vec<String>) {
 
     let params_path = args[0].clone();
 
 
 }
 
-pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) {
+pub fn merge_step<MapReduceType: MapReduce>(work_dir: &Path, args: &Vec<String>) {
 
 }
 
