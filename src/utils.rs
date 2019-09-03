@@ -5,6 +5,7 @@ use std::env;
 use failure::{Error};
 use gwasm_api::{Blob, TaskResult, TaskInput};
 use structopt::StructOpt;
+use std::iter::FromIterator;
 
 
 pub trait MapReduce {
@@ -31,18 +32,17 @@ pub fn save_params<SplitOutputType : TaskInput>(output_dir: &Path, split_params:
 pub fn dispatch_and_run_command<MapReduceType: MapReduce>() {
     let mut args: Vec<String> = env::args().collect();
     let command = args[1].clone();
-    let work_dir = PathBuf::from(args[2].clone());
 
-    args.drain(0..2);
+    args.drain(0..1);
 
     if command == "split" {
-        split_step::<MapReduceType>(&work_dir, &args);
+        split_step::<MapReduceType>(&args);
     }
     else if command == "execute" {
-        execute_step::<MapReduceType>(&work_dir, &args);
+        execute_step::<MapReduceType>(&args);
     }
     else if command == "merge" {
-        panic!("Not implemented")
+        merge_step::<MapReduceType>(&args);
     }
     else {
         panic!("Command not specified.")
@@ -50,22 +50,22 @@ pub fn dispatch_and_run_command<MapReduceType: MapReduce>() {
 }
 
 
-pub fn split_step<MapReduceType: MapReduce>(work_dir: &Path, args: &Vec<String>) -> Vec<MapReduceType::ExecuteInput> {
+pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>){
 
-    let split_params = MapReduceType::split(args);
-    save_params(Path::new("results/split/"), &split_params).unwrap();
+    let work_dir = PathBuf::from(&args[0]);
+    let split_params = MapReduceType::split(&Vec::from_iter(args[1..].iter().cloned()));
 
-    return split_params;
+    save_params(&work_dir, &split_params).unwrap();
 }
 
-pub fn execute_step<MapReduceType: MapReduce>(work_dir: &Path, args: &Vec<String>) {
+pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) {
 
     let params_path = args[0].clone();
 
 
 }
 
-pub fn merge_step<MapReduceType: MapReduce>(work_dir: &Path, args: &Vec<String>) {
+pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) {
 
 }
 
