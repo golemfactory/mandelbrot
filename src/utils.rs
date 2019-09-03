@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::env;
 
-use failure::{Error};
+use failure::{Error, Fail};
 use gwasm_api::{Blob, TaskResult, TaskInput};
 use structopt::StructOpt;
 use std::iter::FromIterator;
@@ -11,22 +11,41 @@ use std::iter::FromIterator;
 pub trait MapReduce {
 
     type ExecuteInput: TaskInput;
-    type ExecuteOutput;
+    type ExecuteOutput: TaskInput;
 
     fn split(args: &Vec<String>) -> Vec<Self::ExecuteInput>;
     fn execute(params: Self::ExecuteInput) -> Self::ExecuteOutput;
     fn merge(args: &Vec<String>, subtasks_result: &TaskResult<Self::ExecuteInput, Self::ExecuteOutput>);
 }
 
-pub fn save_params<SplitOutputType : TaskInput>(output_dir: &Path, split_params: &Vec<SplitOutputType>) -> Result<(), Error> {
+#[derive(Debug, Fail)]
+pub enum ApiError {
+    #[fail(display = "Can't find parent")]
+    NoParent,
+}
+
+
+pub fn save_params_vec<SplitOutputType : TaskInput>(output_file: &Path, split_params: &Vec<SplitOutputType>) -> Result<(), Error> {
     let json_params: Vec<serde_json::Value> = split_params.iter().map(TaskInput::pack_task).collect();
+    save_json(output_file, &serde_json::json!(json_params))
+}
 
-    fs::create_dir_all(output_dir)?;
+pub fn save_params<SplitOutputType : TaskInput>(output_file: &Path, split_params: &SplitOutputType) -> Result<(), Error> {
+    let json: serde_json::Value = split_params.pack_task();
+    save_json(output_file, &json)
+}
 
-    let output_file = output_dir.join("params.json");
-    fs::write(output_file, serde_json::to_string_pretty(&json_params)?)?;
+pub fn save_json(output_file: &Path, json: &serde_json::Value) -> Result<(), Error> {
 
+    let work_dir = output_file.parent().ok_or(ApiError::NoParent)?;
+    fs::create_dir_all(work_dir)?;
+
+    fs::write(output_file, serde_json::to_string_pretty(&json)?)?;
     Ok(())
+}
+
+pub fn load_params<MapReduceType: MapReduce>(params_path: &Path) -> MapReduceType::ExecuteOutput {
+    unimplemented!()
 }
 
 pub fn dispatch_and_run_command<MapReduceType: MapReduce>() {
@@ -55,14 +74,18 @@ pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>){
     let work_dir = PathBuf::from(&args[0]);
     let split_params = MapReduceType::split(&Vec::from_iter(args[1..].iter().cloned()));
 
-    save_params(&work_dir, &split_params).unwrap();
+    let split_out_path = work_dir.join("tasks.json");
+    save_params_vec(&split_out_path, &split_params).unwrap();
 }
 
 pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) {
 
-    let params_path = args[0].clone();
+    let params_path = PathBuf::from(args[0].clone());
+    let output_desc_path = PathBuf::from(args[1].clone());
 
+    let output = load_params::<MapReduceType>(&output_desc_path);
 
+    save_params(&output_desc_path, &output);
 }
 
 pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) {
