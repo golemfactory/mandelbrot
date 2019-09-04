@@ -8,6 +8,7 @@ use gwasm_api::{Blob, TaskResult};
 
 use crate::utils::MapReduce;
 use crate::png_utils;
+use crate::utils;
 
 
 
@@ -98,7 +99,7 @@ impl MapReduce for Mandelbrot {
     type ExecuteOutput = (Blob,);
 
     fn split(params_vec: &Vec<String>) -> Vec<(ExecuteParams, )> {
-        let params = MandelbrotParams::from_iter(params_vec.into_iter());
+        let params = utils::parse_args::<MandelbrotParams>(params_vec);
 
         let s = Complex::new(params.sx, params.sy);
         let e = Complex::new(params.ex, params.ey);

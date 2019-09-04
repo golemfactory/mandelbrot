@@ -5,6 +5,7 @@ use std::env;
 use failure::{Error, Fail};
 use gwasm_api::{Blob, TaskResult, TaskInput};
 use std::iter::FromIterator;
+use structopt::StructOpt;
 
 
 pub trait MapReduce {
@@ -53,7 +54,7 @@ pub fn dispatch_and_run_command<MapReduceType: MapReduce>() -> Result<(), Error>
     let mut args: Vec<String> = env::args().collect();
     let command = args[1].clone();
 
-    args.drain(0..1);
+    args.drain(0..2);
 
     if command == "split" {
         split_step::<MapReduceType>(&args)
@@ -101,4 +102,14 @@ pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Er
 
     Ok(())
 }
+
+pub fn parse_args<ArgsType: StructOpt>(args: &Vec<String>) -> ArgsType {
+    // Note: StructOpt wants to eat first argument as program name.
+    // But we don't have program name at this point, so we must add fake argument.
+    let mut args_copy = args.clone();
+    args_copy.insert(0, String::from("--"));
+
+    return ArgsType::from_iter(args_copy.into_iter());
+}
+
 
