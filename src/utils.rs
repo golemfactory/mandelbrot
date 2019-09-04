@@ -24,6 +24,10 @@ pub enum ApiError {
     NoParent,
     #[fail(display = "Expected -- separator.")]
     NoSeparator,
+    #[fail(display = "No such command {}.", command)]
+    NoCommand {
+        command : String,
+    }
 }
 
 
@@ -66,7 +70,7 @@ pub fn dispatch_and_run_command<MapReduceType: MapReduce>() -> Result<(), Error>
         merge_step::<MapReduceType>(&args)
     }
     else {
-        panic!("Command not specified.")
+        Err(ApiError::NoCommand{ command })?
     }
 }
 
