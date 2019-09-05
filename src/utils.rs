@@ -26,8 +26,12 @@ pub enum ApiError {
     NoSeparator,
     #[fail(display = "No such command {}.", command)]
     NoCommand {
-        command : String,
-    }
+        command: String,
+    },
+    #[fail(display = "Invalid params format: {}.", message)]
+    InvalidParamsFormat {
+        message: String
+    },
 }
 
 
@@ -50,14 +54,26 @@ pub fn save_json(output_file: &Path, json: &serde_json::Value) -> Result<(), Err
     Ok(())
 }
 
-pub fn load_params<MapReduceType: MapReduce>(params_path: &Path) -> MapReduceType::ExecuteOutput {
-    unimplemented!()
+pub fn load_params<MapReduceType: MapReduce>(params_path: &Path) -> Result<MapReduceType::ExecuteInput, Error> {
+    let content = fs::read_to_string(params_path)?;
+    let json = serde_json::from_str(&content)?;
+
+    load_params_json::<MapReduceType>(json)
+}
+
+pub fn load_params_json<MapReduceType: MapReduce>(json: serde_json::Value) -> Result<MapReduceType::ExecuteInput, Error> {
+    if !json.is_array() {
+        Err(ApiError::InvalidParamsFormat{ message: String::from("Top level array not found") })?
+    }
+
+    MapReduceType::ExecuteInput::from_json(json)
 }
 
 pub fn dispatch_and_run_command<MapReduceType: MapReduce>() -> Result<(), Error> {
     let mut args: Vec<String> = env::args().collect();
     let command = args[1].clone();
 
+    // Remove program name and command.
     args.drain(0..2);
 
     if command == "split" {
@@ -86,12 +102,15 @@ pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Er
 
 pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Error>  {
 
+    println!("Running execute step.");
+
     let params_path = PathBuf::from(args[0].clone());
     let output_desc_path = PathBuf::from(args[1].clone());
 
-    let output = load_params::<MapReduceType>(&output_desc_path);
+    let input_params = load_params::<MapReduceType>(&params_path)?;
+    let output_desc = MapReduceType::execute(input_params);
 
-    save_params(&output_desc_path, &output)
+    save_params(&output_desc_path, &output_desc)
 }
 
 pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Error>  {

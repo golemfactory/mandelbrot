@@ -12,5 +12,5 @@ fn main() {
     // Run MapReduce task defined in Mandelbrot struct.
     // This function will parse command line arguments and dispatch it
     // to one of split, execute and merge functions.
-    utils::dispatch_and_run_command::<Mandelbrot>();
+    utils::dispatch_and_run_command::<Mandelbrot>().unwrap();
 }
