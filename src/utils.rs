@@ -6,6 +6,7 @@ use failure::{Error, Fail};
 use gwasm_api::{Blob, TaskResult, TaskInput};
 use std::iter::FromIterator;
 use structopt::StructOpt;
+use serde::de::Unexpected::Map;
 
 
 pub trait MapReduce {
@@ -54,19 +55,39 @@ pub fn save_json(output_file: &Path, json: &serde_json::Value) -> Result<(), Err
     Ok(())
 }
 
-pub fn load_params<MapReduceType: MapReduce>(params_path: &Path) -> Result<MapReduceType::ExecuteInput, Error> {
+pub fn load_json(params_path: &Path) -> Result<serde_json::Value, Error> {
     let content = fs::read_to_string(params_path)?;
-    let json = serde_json::from_str(&content)?;
-
-    load_params_json::<MapReduceType>(json)
+    return Ok(serde_json::from_str(&content)?);
 }
 
-pub fn load_params_json<MapReduceType: MapReduce>(json: serde_json::Value) -> Result<MapReduceType::ExecuteInput, Error> {
+pub fn load_params<ArgsType: TaskInput>(params_path: &Path) -> Result<ArgsType, Error> {
+    let json = load_json(params_path)?;
+    load_params_json::<ArgsType>(json)
+}
+
+pub fn load_params_json<ArgsType: TaskInput>(json: serde_json::Value) -> Result<ArgsType, Error> {
     if !json.is_array() {
         Err(ApiError::InvalidParamsFormat{ message: String::from("Top level array not found") })?
     }
 
-    MapReduceType::ExecuteInput::from_json(json)
+    ArgsType::from_json(json)
+}
+
+pub fn load_params_vec<ArgsType: TaskInput>(params_path: &Path) -> Result<Vec<ArgsType>, Error> {
+    let json = load_json(params_path)?;
+    match json {
+        serde_json::Value::Array(json_vec) => {
+
+            let mut params = vec!();
+            for element in json_vec.into_iter() {
+                params.push(load_params_json::<ArgsType>(element)?);
+            }
+            Ok(params)
+        },
+        _ => {
+            Err(ApiError::InvalidParamsFormat{ message: String::from("Loading json: top object is not an Array.") })?
+        }
+    }
 }
 
 pub fn dispatch_and_run_command<MapReduceType: MapReduce>() -> Result<(), Error> {
@@ -105,7 +126,7 @@ pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), 
     let params_path = PathBuf::from(args[0].clone());
     let output_desc_path = PathBuf::from(args[1].clone());
 
-    let input_params = load_params::<MapReduceType>(&params_path)?;
+    let input_params = load_params::<MapReduceType::ExecuteInput>(&params_path)?;
     let output_desc = MapReduceType::execute(input_params);
 
     save_params(&output_desc_path, &output_desc)
@@ -113,14 +134,23 @@ pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), 
 
 pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Error>  {
 
-    let tasks_params = PathBuf::from(args[0].clone());
-    let tasks_outputs = PathBuf::from(args[1].clone());
+    let tasks_params_path = PathBuf::from(args[0].clone());
+    let tasks_outputs_path = PathBuf::from(args[1].clone());
 
-//    if args[2] != "--" {
-//        return Err(ApiError::NoSeparator)?;
-//    }
+    if args[2] != "--" {
+        return Err(ApiError::NoSeparator)?;
+    }
 
+    let input_params = load_params_vec::<MapReduceType::ExecuteInput>(&tasks_params_path)?;
+    let outputs = load_params_vec::<MapReduceType::ExecuteOutput>(&tasks_outputs_path)?;
 
+    let in_out_pack = input_params.into_iter()
+        .zip(outputs.into_iter())
+        .collect();
+
+    let original_args = Vec::from_iter(args[3..].iter().cloned());
+
+    MapReduceType::merge(&original_args, &in_out_pack);
     Ok(())
 }
 
