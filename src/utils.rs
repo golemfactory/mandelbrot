@@ -48,7 +48,6 @@ pub fn save_params<SplitOutputType : TaskInput>(output_file: &Path, split_params
 pub fn save_json(output_file: &Path, json: &serde_json::Value) -> Result<(), Error> {
 
     let work_dir = output_file.parent().ok_or(ApiError::NoParent)?;
-    fs::create_dir_all(work_dir)?;
 
     fs::write(output_file, serde_json::to_string_pretty(&json)?)?;
     Ok(())
