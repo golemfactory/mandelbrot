@@ -49,7 +49,6 @@ pub fn save_params<SplitOutputType : TaskInput>(output_file: &Path, split_params
 pub fn save_json(output_file: &Path, json: &serde_json::Value) -> Result<(), Error> {
 
     let work_dir = output_file.parent().ok_or(ApiError::NoParent)?;
-    fs::create_dir_all(work_dir)?;
 
     fs::write(output_file, serde_json::to_string_pretty(&json)?)?;
     Ok(())
@@ -92,6 +91,7 @@ pub fn load_params_vec<ArgsType: TaskInput>(params_path: &Path) -> Result<Vec<Ar
 
 pub fn dispatch_and_run_command<MapReduceType: MapReduce>() -> Result<(), Error> {
     let mut args: Vec<String> = env::args().collect();
+    // TODO: check param len
     let command = args[1].clone();
 
     // Remove program name and command.
@@ -114,6 +114,7 @@ pub fn dispatch_and_run_command<MapReduceType: MapReduce>() -> Result<(), Error>
 
 pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Error> {
 
+    // TODO: check param len
     let work_dir = PathBuf::from(&args[0]);
     let split_params = MapReduceType::split(&Vec::from_iter(args[1..].iter().cloned()));
 
