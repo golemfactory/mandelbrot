@@ -71,6 +71,7 @@ pub fn load_params_json<MapReduceType: MapReduce>(json: serde_json::Value) -> Re
 
 pub fn dispatch_and_run_command<MapReduceType: MapReduce>() -> Result<(), Error> {
     let mut args: Vec<String> = env::args().collect();
+    // TODO: check param len
     let command = args[1].clone();
 
     // Remove program name and command.
@@ -93,6 +94,7 @@ pub fn dispatch_and_run_command<MapReduceType: MapReduce>() -> Result<(), Error>
 
 pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Error> {
 
+    // TODO: check param len
     let work_dir = PathBuf::from(&args[0]);
     let split_params = MapReduceType::split(&Vec::from_iter(args[1..].iter().cloned()));
 
