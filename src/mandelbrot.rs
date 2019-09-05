@@ -131,7 +131,6 @@ impl MapReduce for Mandelbrot {
         let width = params.area.endx - params.area.startx;
         let height = params.area.endy - params.area.starty;
 
-        println!("Saving image to {}", &params.output);
         png_utils::save_file(&params.output, &data, width, height).unwrap();
 
         return (Blob::new(&params.output), );

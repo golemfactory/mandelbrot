@@ -102,8 +102,6 @@ pub fn split_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Er
 
 pub fn execute_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Error>  {
 
-    println!("Running execute step.");
-
     let params_path = PathBuf::from(args[0].clone());
     let output_desc_path = PathBuf::from(args[1].clone());
 
