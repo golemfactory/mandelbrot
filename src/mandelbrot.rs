@@ -26,16 +26,6 @@ pub struct MandelbrotParams {
     output_dir: String,
 }
 
-fn mandelbrot(c: Complex<f64>, max_iter: usize) -> usize {
-    let mut z = Complex::from(0f64);
-    let mut n = 0;
-    while z.norm() <= 2f64 && n < max_iter {
-        z = z * z + c;
-        n += 1;
-    }
-    n
-}
-
 #[derive(Clone, Serialize, Deserialize)]
 struct Rect {
     startx: u32,
@@ -69,6 +59,16 @@ pub struct Mandelbrot;
 
 impl Mandelbrot {
 
+    fn mandelbrot(c: Complex<f64>, max_iter: usize) -> usize {
+        let mut z = Complex::from(0f64);
+        let mut n = 0;
+        while z.norm() <= 2f64 && n < max_iter {
+            z = z * z + c;
+            n += 1;
+        }
+        n
+    }
+
     fn exec_to_vec(params: &ExecuteParams) -> Vec<u8> {
         let data = (params.area.starty..params.area.endy)
             .into_iter()
@@ -76,7 +76,7 @@ impl Mandelbrot {
                 let im = params.pixel_step.im * y as f64;
                 (params.area.startx..params.area.endx).into_iter().map(move |x| {
                     let step = Complex::new(params.pixel_step.re * x as f64, im);
-                    let it = mandelbrot(params.start + step, params.max_iter);
+                    let it = Mandelbrot::mandelbrot(params.start + step, params.max_iter);
                     //            println!("{}x{}: it = {}", y, x, it);
                     (params.max_iter as f64 * 255f64 / it as f64) as u8
                 })
