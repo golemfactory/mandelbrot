@@ -6,9 +6,8 @@ use structopt::*;
 use serde::{Deserialize, Serialize};
 use gwasm_api::{Blob, TaskResult};
 
-use crate::utils::MapReduce;
-use crate::png_utils;
 use crate::utils;
+use crate::png_utils;
 
 
 
@@ -93,7 +92,7 @@ impl Mandelbrot {
 }
 
 
-impl MapReduce for Mandelbrot {
+impl gwasm_api::dispatcher::MapReduce for Mandelbrot {
 
     type ExecuteInput = (ExecuteParams,);
     type ExecuteOutput = (Blob,);
