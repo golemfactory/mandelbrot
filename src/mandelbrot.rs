@@ -137,7 +137,7 @@ impl MapReduce for Mandelbrot {
     }
 
     fn merge(args_vec: &Vec<String>, params: &TaskResult<(ExecuteParams, ), (Blob, )>) {
-        let args = MandelbrotParams::from_iter(args_vec.into_iter());
+        let args = utils::parse_args::<MandelbrotParams>(args_vec);
 
         let partial_results = params.into_iter().map(|((_params, ), (image_blob, ))| {
             png_utils::load_file(image_blob.path.as_ref().unwrap())

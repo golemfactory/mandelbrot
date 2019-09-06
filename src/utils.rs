@@ -150,6 +150,7 @@ pub fn merge_step<MapReduceType: MapReduce>(args: &Vec<String>) -> Result<(), Er
         .collect();
 
     let original_args = Vec::from_iter(args[3..].iter().cloned());
+    println!("Merge args {:?}", original_args);
 
     MapReduceType::merge(&original_args, &in_out_pack);
     Ok(())
