@@ -4,7 +4,7 @@ use num_complex::Complex;
 use structopt::*;
 
 use serde::{Deserialize, Serialize};
-use gwasm_api::{Blob, TaskResult};
+use gwasm_api::{Blob, Output, TaskResult};
 use gwasm_api::{SplitContext};
 
 use crate::utils;
@@ -91,7 +91,7 @@ impl Mandelbrot {
         partial_results.into_iter().flatten().collect::<Vec<u8>>()
     }
 
-    pub fn split(context: &mut SplitContext) -> Vec<(ExecuteParams, )> {
+    pub fn split(context: &mut SplitContext) -> Vec<(ExecuteParams, Output)> {
         let params = utils::parse_args::<MandelbrotParams>(context.args());
 
         let s = Complex::new(params.sx, params.sy);
@@ -112,13 +112,13 @@ impl Mandelbrot {
             let area = Rect { startx: 0, starty, endx: params.width, endy };
             let output = format!("{}/out-{}-{}.png", &params.output_dir, area.starty, area.endy);
 
-            split_params.push((ExecuteParams { area, output, ..common_params }, ))
+            split_params.push((ExecuteParams { area, output, ..common_params }, context.new_blob()))
         }
 
         return split_params;
     }
 
-    pub fn execute(params: ExecuteParams) -> (Blob, ) {
+    pub fn execute(params: ExecuteParams, png: Output) -> (Blob, ) {
         let data = Mandelbrot::exec_to_vec(&params);
 
         let width = params.area.endx - params.area.startx;
@@ -126,13 +126,13 @@ impl Mandelbrot {
 
         png_utils::save_file(&params.output, &data, width, height).unwrap();
 
-        return (Blob::new(), );
+        return (Blob::from_output(png),);
     }
 
-    pub fn merge(args_vec: &Vec<String>, params: TaskResult<(ExecuteParams, ), (Blob, )>) {
+    pub fn merge(args_vec: &Vec<String>, params: TaskResult<(ExecuteParams, Output), (Blob, )>) {
         let args = utils::parse_args::<MandelbrotParams>(args_vec);
 
-        let partial_results = params.into_iter().map(|((_params, ), (image_blob, ))| {
+        let partial_results = params.into_iter().map(|((_params, png), (image_blob, ))| {
             png_utils::load_file(&image_blob.get_path())
         }).collect::<Vec<Vec<u8>>>();
 
