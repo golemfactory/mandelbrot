@@ -4,7 +4,7 @@ use num_complex::Complex;
 use structopt::*;
 
 use serde::{Deserialize, Serialize};
-use gwasm_api::{Blob, TaskResult};
+use gwasm_api::{Blob, TaskResult, MapReduce};
 
 use crate::utils;
 use crate::png_utils;
