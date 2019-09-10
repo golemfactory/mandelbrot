@@ -1,4 +1,5 @@
 use std::path::{Path};
+use std::fs;
 
 use num_complex::Complex;
 use structopt::*;
@@ -22,9 +23,7 @@ pub struct MandelbrotParams {
     max_iter: usize,
     width: u32,
     height: u32,
-
     num_subtasks: usize,
-    output_dir: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -43,7 +42,6 @@ pub struct ExecuteParams {
     pixel_step: Complex<f64>,
     max_iter: usize,
     area: Rect,
-    output: String,
 }
 
 // This is required to run serde serialization on Complex type.
@@ -102,7 +100,7 @@ impl Mandelbrot {
 
         // Preapre params common for all subtasks. Create zero area to replace in future on per subtasks basis.
         let area = Rect { startx: 0, starty: 0, endx: 0, endy: 0 };
-        let common_params = ExecuteParams { start: s, pixel_step: scale, max_iter: params.max_iter, area, output: String::new() };
+        let common_params = ExecuteParams { start: s, pixel_step: scale, max_iter: params.max_iter, area };
 
         let mut split_params = Vec::with_capacity(params.num_subtasks);
         for part in 0..params.num_subtasks {
@@ -110,9 +108,8 @@ impl Mandelbrot {
             let endy = ((part as u32 + 1) * params.height) / params.num_subtasks as u32;
 
             let area = Rect { startx: 0, starty, endx: params.width, endy };
-            let output = format!("{}/out-{}-{}.png", &params.output_dir, area.starty, area.endy);
 
-            split_params.push((ExecuteParams { area, output, ..common_params }, context.new_blob()))
+            split_params.push((ExecuteParams { area, ..common_params }, context.new_blob()))
         }
 
         return split_params;
@@ -124,7 +121,7 @@ impl Mandelbrot {
         let width = params.area.endx - params.area.startx;
         let height = params.area.endy - params.area.starty;
 
-        png_utils::save_file(&params.output, &data, width, height).unwrap();
+        png_utils::save_file(&mut png.open().unwrap(), &data, width, height).unwrap();
 
         return (Blob::from_output(png),);
     }
@@ -139,9 +136,14 @@ impl Mandelbrot {
         let data = Mandelbrot::merge_vecs(partial_results);
 
         // Write result image to file.
-        let output_path = Path::new(&args.output_dir).join("out.png");
+        let output_path = Path::new("out.png");
+        let mut out_stream = fs::OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(output_path).unwrap();
 
-        png_utils::save_file(output_path.to_str().unwrap(), &data, args.width, args.height).unwrap();
+        png_utils::save_file(&mut out_stream, &data, args.width, args.height).unwrap();
     }
 }
 

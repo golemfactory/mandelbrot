@@ -1,9 +1,10 @@
 use std::fs::File;
-use std::fs;
 use std::io::{BufWriter};
 use std::path::{Path};
 
 use failure::{Error, Fail};
+use png::StreamWriter;
+use std::io::{Write};
 
 
 #[derive(Debug, Fail)]
@@ -19,18 +20,13 @@ pub enum SaveFileError {
 
 
 
-pub fn save_file(output: &str, data: &Vec<u8>, width: u32, height: u32) -> Result<(), Error> {
+pub fn save_file(output: &mut dyn Write, data: &Vec<u8>, width: u32, height: u32) -> Result<(), Error> {
 
     if data.len() != (width * height) as usize {
         return Err(SaveFileError::NotMatchingSize{ width, height })?;
     }
 
-    let path = Path::new(output);
-    fs::create_dir_all(path.parent().ok_or(SaveFileError::NoParent)?)?;
-
-    let file = File::create(&path)?;
-
-    let mut encoder = png::Encoder::new(BufWriter::new(file), width, height);
+    let mut encoder = png::Encoder::new(output, width, height);
     encoder.set_color(png::ColorType::Grayscale);
     encoder.set_depth(png::BitDepth::Eight);
     let mut writer = encoder.write_header()?;
