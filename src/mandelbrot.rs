@@ -4,7 +4,8 @@ use num_complex::Complex;
 use structopt::*;
 
 use serde::{Deserialize, Serialize};
-use gwasm_api::{Blob, TaskResult, MapReduce};
+use gwasm_api::{Blob, TaskResult};
+use gwasm_api::{SplitContext};
 
 use crate::utils;
 use crate::png_utils;
@@ -89,16 +90,9 @@ impl Mandelbrot {
     fn merge_vecs(partial_results: Vec<Vec<u8>>) -> Vec<u8> {
         partial_results.into_iter().flatten().collect::<Vec<u8>>()
     }
-}
 
-
-impl gwasm_api::dispatcher::MapReduce for Mandelbrot {
-
-    type ExecuteInput = (ExecuteParams,);
-    type ExecuteOutput = (Blob,);
-
-    fn split(params_vec: &Vec<String>) -> Vec<(ExecuteParams, )> {
-        let params = utils::parse_args::<MandelbrotParams>(params_vec);
+    pub fn split(context: &mut SplitContext) -> Vec<(ExecuteParams, )> {
+        let params = utils::parse_args::<MandelbrotParams>(context.args());
 
         let s = Complex::new(params.sx, params.sy);
         let e = Complex::new(params.ex, params.ey);
@@ -124,7 +118,7 @@ impl gwasm_api::dispatcher::MapReduce for Mandelbrot {
         return split_params;
     }
 
-    fn execute((params,): (ExecuteParams,)) -> (Blob, ) {
+    pub fn execute(params: ExecuteParams) -> (Blob, ) {
         let data = Mandelbrot::exec_to_vec(&params);
 
         let width = params.area.endx - params.area.startx;
@@ -135,7 +129,7 @@ impl gwasm_api::dispatcher::MapReduce for Mandelbrot {
         return (Blob::new(&params.output), );
     }
 
-    fn merge(args_vec: &Vec<String>, params: &TaskResult<(ExecuteParams, ), (Blob, )>) {
+    pub fn merge(args_vec: &Vec<String>, params: &TaskResult<(ExecuteParams, ), (Blob, )>) {
         let args = utils::parse_args::<MandelbrotParams>(args_vec);
 
         let partial_results = params.into_iter().map(|((_params, ), (image_blob, ))| {
@@ -150,3 +144,4 @@ impl gwasm_api::dispatcher::MapReduce for Mandelbrot {
         png_utils::save_file(output_path.to_str().unwrap(), &data, args.width, args.height).unwrap();
     }
 }
+
