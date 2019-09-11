@@ -4,7 +4,7 @@ use std::path::{Path};
 
 use failure::{Error, Fail};
 use png::StreamWriter;
-use std::io::{Write};
+use std::io::{Write, Read};
 
 
 #[derive(Debug, Fail)]
@@ -35,8 +35,8 @@ pub fn save_file(output: &mut dyn Write, data: &Vec<u8>, width: u32, height: u32
     Ok(())
 }
 
-pub fn load_file(input: &Path) -> Vec<u8> {
-    let decoder = png::Decoder::new(File::open(input).unwrap());
+pub fn load_file(output: &mut dyn Read) -> Vec<u8> {
+    let decoder = png::Decoder::new(output);
     let (info, mut reader) = decoder.read_info().unwrap();
     let mut buf = vec![0; info.buffer_size()];
 
