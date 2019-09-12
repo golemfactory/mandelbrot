@@ -9,8 +9,7 @@ use crate::mandelbrot::{Mandelbrot};
 
 fn main() {
 
-    // Run MapReduce task defined in Mandelbrot struct.
     // This function will parse command line arguments and dispatch it
     // to one of split, execute and merge functions.
-    dispatcher::dispatch_and_run_command::<Mandelbrot>().unwrap();
+    dispatcher::run(&Mandelbrot::split, &Mandelbrot::execute, &Mandelbrot::merge).unwrap();
 }
