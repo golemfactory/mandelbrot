@@ -16,7 +16,7 @@ rustup target add wasm32-unknown-emscripten
 
 then to build run
 ```
-cargo rustc --target=wasm32-unknown-emscripten --release
+cargo rustc --target=wasm32-unknown-emscripten --release -- -C link-args="-s ALLOW_MEMORY_GROWTH=1"
 ```
 
 ### benchmarks
