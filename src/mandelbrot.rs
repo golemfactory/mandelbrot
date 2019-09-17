@@ -129,7 +129,7 @@ impl Mandelbrot {
     pub fn merge(args_vec: &Vec<String>, params: TaskResult<(ExecuteParams, Output), (Blob, )>) {
         let args = utils::parse_args::<MandelbrotParams>(args_vec);
 
-        let partial_results = params.into_iter().map(|((_params, png), (image_blob, ))| {
+        let partial_results = params.into_iter().map(|((_params, _), (image_blob, ))| {
             png_utils::load_file(&mut image_blob.open().unwrap())
         }).collect::<Vec<Vec<u8>>>();
 

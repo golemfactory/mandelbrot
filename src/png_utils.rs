@@ -1,9 +1,4 @@
-use std::fs::File;
-use std::io::{BufWriter};
-use std::path::{Path};
-
 use failure::{Error, Fail};
-use png::StreamWriter;
 use std::io::{Write, Read};
 
 
