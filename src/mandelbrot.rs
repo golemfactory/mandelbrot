@@ -15,9 +15,13 @@ use crate::png_utils;
 
 #[derive(Debug, StructOpt, Clone, Serialize, Deserialize)]
 pub struct MandelbrotParams {
+    #[structopt(long = "sx", default_value = "0.2")]
     sx: f64,
+    #[structopt(long = "ex", default_value = "0.35")]
     ex: f64,
+    #[structopt(long = "sy", default_value = "0.6")]
     sy: f64,
+    #[structopt(long = "ey", default_value = "0.45")]
     ey: f64,
     #[structopt(long = "max-iter", default_value = "80")]
     max_iter: usize,
