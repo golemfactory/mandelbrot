@@ -1,8 +1,5 @@
 use structopt::StructOpt;
 
-
-
-
 pub fn parse_args<ArgsType: StructOpt>(args: &Vec<String>) -> ArgsType {
     // Note: StructOpt wants to eat first argument as program name.
     // But we don't have program name at this point, so we must add fake argument.
@@ -11,5 +8,3 @@ pub fn parse_args<ArgsType: StructOpt>(args: &Vec<String>) -> ArgsType {
 
     return ArgsType::from_iter(args_copy.into_iter());
 }
-
-
