@@ -1,49 +1,35 @@
 # mandelbrot
-simple Mandelbrot set fractal visualiser
 
-## building
+`mandelbrot` is a simple Mandelbrot set fractal visualiser for use with our `gWasm` platform.
 
+## Building
 
-### native binary
-use plain `cargo build`
+Before building the program, you'll need to download and install the Emscripten SDK. Follow
+the instructions on [Emscripten SDK website] to get the latest copy of the SDK.
 
-### wasm target
-you need [Emscripten sdk](https://emscripten.org/docs/getting_started/downloads.html#installation-instructions)
-and a emscripten rust target 
+Next, install the `wasm32-unknown-emscripten` target. We assume you're using [rustup] to
+manage your Rust installation, so simply run in the terminal/command line
+
 ```
 rustup target add wasm32-unknown-emscripten
 ```
 
-then to build run
-```
-cargo rustc --target=wasm32-unknown-emscripten --release -- -C link-args="-s ALLOW_MEMORY_GROWTH=1"
-```
-
-### benchmarks
-I was using [sp-wasm](https://github.com/golemfactory/sp-wasm) to run WASM binary.
-Benchmarks are run on iMac, Intel Core i7, 4 GHz
+Finally, that should be you prepped and ready to build the crate. To do this, simply run
+in the terminal/command line
 
 ```
-$ bench '~/git/sp-wasm/target/release/wasm-sandbox -I x -O x -o out.png \
->  -w target/wasm32-unknown-emscripten/release/mandelbrot.wasm \
->  -j target/wasm32-unknown-emscripten/release/mandelbrot.js \
->  0.2 0.35 0.6 0.45 1000 1000' '~/git/mandelbrot/target/release/mandelbrot 0.2 0.35 0.6 0.45 1000 1000' 
-benchmarking bench/~/git/sp-wasm/target/release/wasm-sandbox -I x -O x -o out.png \
-  -w target/wasm32-unknown-emscripten/release/mandelbrot.wasm \
-  -j target/wasm32-unknown-emscripten/release/mandelbrot.js \
-  0.2 0.35 0.6 0.45 1000 1000
-time                 1.261 s    (1.218 s .. 1.285 s)
-                     1.000 R²   (1.000 R² .. 1.000 R²)
-mean                 1.276 s    (1.268 s .. 1.281 s)
-std dev              8.042 ms   (1.371 ms .. 10.49 ms)
-variance introduced by outliers: 19% (moderately inflated)
-
-benchmarking bench/~/git/mandelbrot/target/release/mandelbrot 0.2 0.35 0.6 0.45 1000 1000
-time                 337.2 ms   (NaN s .. 338.6 ms)
-                     1.000 R²   (1.000 R² .. 1.000 R²)
-mean                 336.7 ms   (336.2 ms .. 336.9 ms)
-std dev              361.0 μs   (41.75 μs .. 461.3 μs)
-variance introduced by outliers: 19% (moderately inflated)
+cargo build --release
 ```
 
-As we can see WASM execution takes ~4x longer.
+[Emscripten SDK website]: https://emscripten.org/docs/getting_started/downloads.html#installation-instructions
+[rustup]: https://rustup.rs
+
+## Running
+
+You'll need a copy of our [gwasm-runner] binary in order to run the program
+
+```
+gwasm-runner target/wasm32-unknown-emscripten/release/mandelbrot.wasm
+```
+
+[gwasm-runner]: https://github.com/golemfactory/gwasm-runner/releases
