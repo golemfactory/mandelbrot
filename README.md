@@ -29,7 +29,13 @@ cargo build --release
 You'll need a copy of our [gwasm-runner] binary in order to run the program
 
 ```
-gwasm-runner target/wasm32-unknown-emscripten/release/mandelbrot.wasm
+gwasm-runner -v target/wasm32-unknown-emscripten/release/mandelbrot.wasm 1000 1000 2
 ```
+Running on Golem Unlimited
+
+```
+gwasm-runner -v --backend GU target/wasm32-unknown-emscripten/release/mandelbrot.wasm 1000 1000 2
+```
+
 
 [gwasm-runner]: https://github.com/golemfactory/gwasm-runner/releases
