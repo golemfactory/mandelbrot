@@ -3,7 +3,7 @@ pub mod png_utils;
 pub mod utils;
 
 use crate::mandelbrot::Mandelbrot;
-use gwasm_api::dispatcher;
+use gwasm_dispatcher::dispatcher;
 
 fn main() {
     // This function will parse command line arguments and dispatch it
