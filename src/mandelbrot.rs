@@ -4,8 +4,8 @@ use std::path::Path;
 use num_complex::Complex;
 use structopt::*;
 
-use gwasm_api::SplitContext;
-use gwasm_api::{Blob, Output, TaskResult};
+use gwasm_dispatcher::SplitContext;
+use gwasm_dispatcher::{Blob, Output, TaskResult};
 use serde::{Deserialize, Serialize};
 
 use crate::png_utils;
