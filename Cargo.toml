@@ -1,7 +1,8 @@
 [package]
 name = "mandelbrot"
-version = "0.2.0"
-authors = ["Piotr Chromiec <tworec@golem.network>"]
+version = "0.2.1"
+authors = ["Golem Factory <contact@golem.network>"]
+license = "GPL-3.0"
 edition = "2018"
 
 [dependencies]

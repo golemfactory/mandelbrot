@@ -165,7 +165,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "mandelbrot"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gwasm-dispatcher 0.1.0 (git+https://github.com/golemfactory/gwasm-runner.git)",
