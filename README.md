@@ -2,6 +2,8 @@
 
 `mandelbrot` is a simple Mandelbrot set fractal visualiser for use with our `gWasm` platform.
 
+![mandelbrot GIF demo](mandelbrot_demo.gif)
+
 ## Building
 
 Before building the program, you'll need to download and install the Emscripten SDK. Follow
