@@ -2,7 +2,7 @@
 
 `mandelbrot` is a simple Mandelbrot set fractal visualiser for use with our `gWasm` platform.
 
-![mandelbrot GIF demo](https://i.imgur.com/Mlvb3le.gif)
+![mandelbrot GIF demo](mandelbrot_demo.gif)
 
 ## Building
 
